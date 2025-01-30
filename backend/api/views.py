@@ -6,12 +6,13 @@ from .serializers import AvatarUserSerializer
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from djoser.views import UserViewSet
 from rest_framework.mixins import UpdateModelMixin, DestroyModelMixin
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 User = get_user_model()
 
 
 class MyUserViewSet(ModelViewSet):
-
+    permission_classes = (AllowAny,)
     serializer_class = AvatarUserSerializer
     queryset = User.objects.all()
 
