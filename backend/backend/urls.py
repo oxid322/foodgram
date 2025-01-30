@@ -16,11 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from djoser.urls
+
 
 urlpatterns = [
     path('api/auth/', include('djoser.urls.authtoken')),
-    path('api/users/me/', include('api.urls', namespace='foodgram_api')),
-    path('api/', include('djoser.urls')),
+    path('api/users/', include('api.urls', namespace='foodgram_api')),
+    # path('api/', include('djoser.urls')),
     path('admin/', admin.site.urls),
 ]

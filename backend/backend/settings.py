@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+AUTH_USER_MODEL = 'foodgram.User'
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
@@ -142,4 +142,4 @@ REST_FRAMEWORK = {
 LOGIN_FIELD = 'email'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-AUTH_USER_MODEL = 'foodgram.User'
+
