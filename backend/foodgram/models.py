@@ -18,3 +18,12 @@ class User(AbstractUser):
                                default='')
     REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
 
+
+class Subcription(models.Model):
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             related_name='subcriptions')
+    subscribed_to = models.ForeignKey(User,
+                                      related_name='subscribers',
+                                      on_delete=models.CASCADE)
+
