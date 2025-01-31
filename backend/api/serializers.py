@@ -56,6 +56,7 @@ class AvatarUserSerializer(UserCreateSerializer):
     #     user = User()
 
 
+#TODO: реализовать сериализатор подписки
 class SubscriptionSerializer(Serializer):
     id = SerializerMethodField()
 
@@ -66,33 +67,35 @@ class SubscriptionSerializer(Serializer):
         return -1
 
 
-class AvatarField(Field):
-    def to_internal_value(self, data):
-        if not data.startswith('data:image/'):
-            raise ValidationError("Неверный формат данных изображения.")
-        # Извлекаем формат и данные изображения
-        format, imgstr = data.split(';base64,')
-        ext = format.split('/')[-1]  # Получаем расширение файла
-
-        logger.debug(f'My variable value: {imgstr}')
-        # Генерируем уникальное имя для файла
-        id = uuid.uuid4()
-        file_name = f"{id}.{ext}"
-        os.makedirs(django.conf.settings.MEDIA_ROOT / 'avatars', exist_ok=True)
-        with open(django.conf.settings.MEDIA_ROOT / 'avatars', "wb") as f:
-            f.write(base64.b64decode(imgstr))
-        try:
-            decoded_file = ContentFile(base64.b64decode(imgstr), name=file_name)
-            return f'/media/avatars/{file_name}'
-        except Exception as e:
-            logger.debug(f'My variable value: {imgstr}')
-            return None
-
-    def to_representation(self, value):
-        return value
+# class AvatarField(Field):
+#     """Поле аватара"""
+#     def to_internal_value(self, data):
+#         if not data.startswith('data:image/'):
+#             raise ValidationError("Неверный формат данных изображения.")
+#         # Извлекаем формат и данные изображения
+#         format, imgstr = data.split(';base64,')
+#         ext = format.split('/')[-1]  # Получаем расширение файла
+#
+#         logger.debug(f'My variable value: {imgstr}')
+#         # Генерируем уникальное имя для файла
+#         id = uuid.uuid4()
+#         file_name = f"{id}.{ext}"
+#         os.makedirs(django.conf.settings.MEDIA_ROOT / 'avatars', exist_ok=True)
+#         with open(django.conf.settings.MEDIA_ROOT / 'avatars', "wb") as f:
+#             f.write(base64.b64decode(imgstr))
+#         try:
+#             decoded_file = ContentFile(base64.b64decode(imgstr), name=file_name)
+#             return f'/media/avatars/{file_name}'
+#         except Exception as e:
+#             logger.debug(f'My variable value: {imgstr}')
+#             return None
+#
+#     def to_representation(self, value):
+#         return value
 
 
 class AvatarSerializer(ModelSerializer):
+    """Сериализатор для аватара"""
     avatar = Base64ImageField(max_length=255, required=False)
 
     class Meta:
@@ -101,6 +104,7 @@ class AvatarSerializer(ModelSerializer):
 
 
 class ChangePasswordSerializer(PasswordSerializer):
+    """Кастомный сериализатор смены пароля"""
     current_password = CharField(write_only=True, required=True)
 
     class Meta:
