@@ -13,7 +13,7 @@ class User(AbstractUser):
                                  blank=False,
                                  null=False)
     avatar = models.ImageField('Аватар',
-                               upload_to='avatars',
+                               upload_to='avatars/',
                                blank=True,
                                default='')
     REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
