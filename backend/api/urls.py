@@ -3,9 +3,10 @@ from rest_framework import routers
 from .views import AvatarViewSet, MyUserViewSet, SubscriptionViewSet
 
 
+
 app_name = 'foodgram_api'
 router = routers.DefaultRouter()
-router.register(r'', MyUserViewSet)
+router.register('', MyUserViewSet)
 
 # router.register(r'/me/avatar', AvatarViewSet, basename='avatar')
 

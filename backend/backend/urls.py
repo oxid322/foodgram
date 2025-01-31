@@ -22,7 +22,7 @@ from django.conf import settings
 urlpatterns = [
     path('api/auth/', include('djoser.urls.authtoken')),
     path('api/users/', include('api.urls', namespace='foodgram_api')),
-    path('api/', include('djoser.urls')),
+
     # path('api/', include('djoser.urls')),
     path('admin/', admin.site.urls),
 ]

@@ -1,24 +1,21 @@
-import base64
-
-from django.core.files.base import ContentFile
-from django.shortcuts import render
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.generics import get_object_or_404
-from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, GenericViewSet
-from djoser.views import UserViewSet
 from rest_framework.mixins import (UpdateModelMixin,
                                    DestroyModelMixin,
                                    CreateModelMixin,
                                    ListModelMixin)
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
-from foodgram.models import Subcription
-from .serializers import AvatarUserSerializer, SubscriptionSerializer, AvatarSerializer
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
+
+from foodgram.models import Subscription
 from .pagination import CustomPagination
+from .serializers import (AvatarUserSerializer,
+                          SubscriptionSerializer,
+                          AvatarSerializer,
+                          ChangePasswordSerializer)
 
 User = get_user_model()
 
@@ -27,6 +24,7 @@ class MyUserViewSet(ModelViewSet):
     permission_classes = (AllowAny,)
     serializer_class = AvatarUserSerializer
     queryset = User.objects.all()
+    pagination_class = CustomPagination
 
 
     def get_instance(self):
@@ -34,14 +32,30 @@ class MyUserViewSet(ModelViewSet):
 
     @action(['GET'], detail=False)
     def me(self, request, *args, **kwargs):
-        self.get_object = self.get_instance
-        return self.retrieve(request, *args, **kwargs)
+        if request.user.is_authenticated:
+            self.get_object = self.get_instance
+            return self.retrieve(request, *args, **kwargs)
+        return Response({'detail': 'Пользователь не авторизован'},
+                        status=status.HTTP_401_UNAUTHORIZED)
+
+    @action(methods=['POST'], detail=False)
+    def set_password(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            update_session_auth_hash(request, user)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'detail': 'Пользователь не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class SubscriptionViewSet(ListModelMixin, CreateModelMixin, DestroyModelMixin, GenericViewSet):
     serializer_class = SubscriptionSerializer
-    queryset = Subcription.objects.all()
+    queryset = Subscription.objects.all()
     pagination_class = CustomPagination
+    permission_classes = (IsAuthenticated,)
 
     def create(self, request, *args, **kwargs):
         user = self.request.user
@@ -50,7 +64,7 @@ class SubscriptionViewSet(ListModelMixin, CreateModelMixin, DestroyModelMixin, G
         sub_to = None
         try:
             sub_to = User.objects.get(id=self.kwargs['id'])
-            Subcription.objects.get(user=user, subscribed_to=sub_to)
+            Subscription.objects.get(user=user, subscribed_to=sub_to)
             return Response({'detail': 'Подписка уже существует'},
                             status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
@@ -60,7 +74,7 @@ class SubscriptionViewSet(ListModelMixin, CreateModelMixin, DestroyModelMixin, G
             if user == sub_to:
                 return Response({'detail': 'Нельзя подписаться на самого себя'},
                                 status=status.HTTP_400_BAD_REQUEST)
-            sub = Subcription.objects.create(user=user, subscribed_to=sub_to)
+            sub = Subscription.objects.create(user=user, subscribed_to=sub_to)
             return Response({'id': self.kwargs['id']}, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
@@ -69,7 +83,7 @@ class SubscriptionViewSet(ListModelMixin, CreateModelMixin, DestroyModelMixin, G
         try:
             sub_to = User.objects.get(id=id)
             try:
-                sub = Subcription.objects.get(user=user, subscribed_to=sub_to)
+                sub = Subscription.objects.get(user=user, subscribed_to=sub_to)
                 sub.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             except ObjectDoesNotExist:
@@ -84,7 +98,7 @@ class SubscriptionViewSet(ListModelMixin, CreateModelMixin, DestroyModelMixin, G
 
 class AvatarViewSet(UpdateModelMixin, DestroyModelMixin, GenericViewSet):
     queryset = User.objects.all()
-    serializer_class = AvatarUserSerializer
+    serializer_class = AvatarSerializer
     permission_classes = (IsAuthenticated,)
 
 

@@ -130,7 +130,7 @@ STATIC_ROOT = BASE_DIR / 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
+LOGIN_FIELD = 'email'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
@@ -138,8 +138,12 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ]
 }
-
-LOGIN_FIELD = 'email'
+AUTHENTICATION_BACKENDS = [
+    "djoser.auth_backends.LoginFieldBackend",
+]
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+}
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

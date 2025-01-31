@@ -16,10 +16,11 @@ class User(AbstractUser):
                                upload_to='avatars/',
                                blank=True,
                                default='')
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username', 'password']
+    USERNAME_FIELD = 'email'
 
 
-class Subcription(models.Model):
+class Subscription(models.Model):
     user = models.ForeignKey(User,
                              on_delete=models.CASCADE,
                              related_name='subcriptions')
