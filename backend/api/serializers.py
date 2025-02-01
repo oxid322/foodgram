@@ -9,10 +9,10 @@ from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, PasswordSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import SerializerMethodField, CharField, Field
+from rest_framework.fields import SerializerMethodField, CharField, Field, IntegerField
 from rest_framework.serializers import ModelSerializer, Serializer
 
-from foodgram.models import Subscription
+from foodgram.models import Subscription, Ingredient, Recipe, RecipeIngredient
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -122,3 +122,30 @@ class ChangePasswordSerializer(PasswordSerializer):
         if user.check_password(password):
             return password
         raise ValidationError('Пароль неверен')
+
+
+class IngredientSerializer(ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = ('id',
+                  'name',
+                  'measurement_unit')
+
+
+class RecipeSerializer(ModelSerializer):
+    ingredients = IngredientSerializer(many=True, read_only=True)
+    is_in_shopping_cart = SerializerMethodField()
+    is_favorited = SerializerMethodField()
+    author = AvatarUserSerializer(read_only=True)
+    image = Base64ImageField(max_length=255, required=False)
+    cooking_time = IntegerField(read_only=True)
+
+    class Meta:
+        model = Recipe
+        fields = '__all__'
+
+    def validate_cooking_time(self, value):
+        if value >= 1:
+            return value
+        else:
+            raise ValidationError('Время готовки должно быть больше либо равно 1')

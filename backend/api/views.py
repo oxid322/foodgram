@@ -6,16 +6,16 @@ from rest_framework.mixins import (UpdateModelMixin,
                                    DestroyModelMixin,
                                    CreateModelMixin,
                                    ListModelMixin)
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, GenericViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
 
-from foodgram.models import Subscription
-from .pagination import CustomPagination
+from foodgram.models import Subscription, Recipe, Ingredient
+from .pagination import CustomPagination, RecipePagination
 from .serializers import (AvatarUserSerializer,
                           SubscriptionSerializer,
                           AvatarSerializer,
-                          ChangePasswordSerializer)
+                          ChangePasswordSerializer, RecipeSerializer, IngredientSerializer)
 
 User = get_user_model()
 
@@ -25,7 +25,6 @@ class MyUserViewSet(ModelViewSet):
     serializer_class = AvatarUserSerializer
     queryset = User.objects.all()
     pagination_class = CustomPagination
-
 
     def get_instance(self):
         return self.request.user
@@ -93,15 +92,10 @@ class SubscriptionViewSet(ListModelMixin, CreateModelMixin, DestroyModelMixin, G
     #TO DO: def list
 
 
-
-
-
 class AvatarViewSet(UpdateModelMixin, DestroyModelMixin, GenericViewSet):
     queryset = User.objects.all()
     serializer_class = AvatarSerializer
     permission_classes = (IsAuthenticated,)
-
-
 
     def update(self, request, *args, **kwargs):
         instance = self.get_queryset().get(id=self.request.user.id)
@@ -113,7 +107,6 @@ class AvatarViewSet(UpdateModelMixin, DestroyModelMixin, GenericViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
         return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
@@ -122,3 +115,17 @@ class AvatarViewSet(UpdateModelMixin, DestroyModelMixin, GenericViewSet):
         user.avatar = None
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RecipeViewSet(ModelViewSet):
+    serializer_class = RecipeSerializer
+    pagination_class = RecipePagination
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    queryset = Recipe.objects.all()
+
+
+class IngredientViewSet(ReadOnlyModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+
+
