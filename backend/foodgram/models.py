@@ -50,7 +50,12 @@ class Recipe(models.Model):
                                          verbose_name='Ингридиенты')
     cooking_time = models.PositiveIntegerField('Время приготовления')
 
+    def __str__(self):
+        return self.name
+
+
 class RecipeIngredient(models.Model):
+    """Модель рецепта"""
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     amount = models.FloatField(verbose_name='Количество')
@@ -58,3 +63,11 @@ class RecipeIngredient(models.Model):
     def __str__(self):
         return f"{self.amount} {self.ingredient.measurement_unit} {self.ingredient.name} для {self.recipe.name}"
 
+
+class Favorite(models.Model):
+    """Модель избранного"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favourites')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.user.username} {self.recipe.name}"
