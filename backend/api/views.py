@@ -107,6 +107,10 @@ class ListSubViewSet(ListModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         limit = self.request.query_params.get('recipes_limit', None)
         queryset = self.get_queryset().filter(subscribers__user=self.request.user)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset,
                                          context={'request': request},
@@ -114,8 +118,7 @@ class ListSubViewSet(ListModelMixin, GenericViewSet):
                                          limit_recipes=limit)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # def paginator(self):
-    # TODO: Пагинация не работает
+
 
 
 class AvatarViewSet(UpdateModelMixin,

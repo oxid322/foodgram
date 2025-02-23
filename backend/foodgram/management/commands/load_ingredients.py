@@ -2,6 +2,7 @@ import json
 from django.core.management.base import BaseCommand
 from foodgram.models import Ingredient
 
+
 class Command(BaseCommand):
     help = 'Load ingredients from JSON file'
 
