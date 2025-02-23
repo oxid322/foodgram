@@ -124,7 +124,7 @@ class RecipeSerializer(ModelSerializer):
     ingredients = IngredientSerializer(many=True,
                                        read_only=True)
     is_favorited = SerializerMethodField()
-    #is_in_shopping_cart = SerializerMethodField()
+    is_in_shopping_cart = SerializerMethodField()
     author = CustomUserSerializer(read_only=True)
     image = Base64ImageField(max_length=255,
                              required=False)
@@ -136,7 +136,7 @@ class RecipeSerializer(ModelSerializer):
                   'author',
                   'ingredients',
                   'is_favorited',
-                  #'is_in_shoping_cart',
+                  'is_in_shopping_cart',
                   'name',
                   'image',
                   'text',
@@ -153,8 +153,6 @@ class RecipeSerializer(ModelSerializer):
 
         super().__init__(*args, **kwargs)
 
-
-
         if exclude_author:
             self.fields.pop('author')
 
@@ -166,7 +164,7 @@ class RecipeSerializer(ModelSerializer):
 
         if exclude_serializer_method:
             self.fields.pop('is_favorited')
-            #self.fields.pop('is_in_shopping_cart')
+            self.fields.pop('is_in_shopping_cart')
 
     def validate_cooking_time(self, value):
         if value >= 1:
@@ -178,11 +176,26 @@ class RecipeSerializer(ModelSerializer):
     def get_is_favorited(self, obj):
         request = self.context.get('request')
         user = request.user
-        try:
-            Favorite.objects.get(user=user, recipe=obj)
-            return True
-        except Favorite.DoesNotExist:
-            return False
+        if user.is_authenticated:
+            try:
+                Favorite.objects.get(user=user, recipe=obj)
+                return True
+            except Favorite.DoesNotExist:
+                return False
+        return False
+
+    def get_is_in_shopping_cart(self, obj):
+        request = self.context.get('request')
+        user = request.user
+        if user.is_authenticated:
+            try:
+                shop_list = ShopList.objects.get(user=user)
+                if obj in shop_list.recipes.all():
+                    return True
+                return False
+            except ShopList.DoesNotExist:
+                return False
+        return False
 
 
 class RecipeUserSerializer(CustomUserSerializer):
@@ -240,6 +253,7 @@ class SubscriptionSerializer(Serializer):
 
 class ShopListSerializer(ModelSerializer):
     recipes = SerializerMethodField()
+
     class Meta:
         model = ShopList
         fields = ('recipes',)
@@ -249,5 +263,3 @@ class ShopListSerializer(ModelSerializer):
         result = {
 
         }
-
-

@@ -1,6 +1,22 @@
+import logging
+from foodgram.models import (Subscription,
+                             Recipe,
+                             Ingredient,
+                             Favorite,
+                             ShopList,
+                             RecipeIngredient)
+from .pagination import CustomPagination
+from .serializers import (CustomUserSerializer,
+                          AvatarSerializer,
+                          ChangePasswordSerializer,
+                          RecipeSerializer,
+                          IngredientSerializer,
+                          RecipeUserSerializer)
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import QuerySet
 from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import (UpdateModelMixin,
@@ -11,26 +27,12 @@ from rest_framework.permissions import (AllowAny,
                                         IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import (ModelViewSet,
                                      GenericViewSet,
                                      ReadOnlyModelViewSet)
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
 
-from foodgram.models import (Subscription,
-                             Recipe,
-                             Ingredient,
-                             Favorite,
-                             ShopList,
-                             RecipeIngredient)
-from .pagination import CustomPagination
-from .serializers import (CustomUserSerializer,
-                          SubscriptionSerializer,
-                          AvatarSerializer,
-                          ChangePasswordSerializer,
-                          RecipeSerializer,
-                          IngredientSerializer,
-                          RecipeUserSerializer)
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -162,9 +164,36 @@ class AvatarViewSet(UpdateModelMixin,
 class RecipeViewSet(ModelViewSet):
     serializer_class = RecipeSerializer
     pagination_class = CustomPagination
-
     permission_classes = (IsAuthenticatedOrReadOnly,)
     queryset = Recipe.objects.all()
+    filter_backends = [DjangoFilterBackend, ]
+
+    def list(self, request, *args, **kwargs):
+        user = request.user
+        queryset: QuerySet[Recipe] = Recipe.objects.all()
+        if user.is_authenticated:
+            query_params = self.request.query_params
+            author: str = query_params.get('author', None)
+            is_favorited: str = query_params.get('is_favorited', None)
+            is_in_shopping_cart: str = query_params.get('is_in_shopping_cart', None)
+            if is_favorited:
+                if is_favorited.isdigit():
+                    recipes = Favorite.objects.filter(user=user)
+                    queryset = queryset.filter(favorite__in=recipes)
+            if is_in_shopping_cart:
+                if is_in_shopping_cart.isdigit():
+                    shop_list = ShopList.objects.get_or_create(user=user)[0]
+                    logger.debug(shop_list.recipes.all())
+                    queryset = queryset.filter(shop_lists=shop_list)
+            if author:
+                if author.isdigit():
+                    queryset = queryset.filter(author=author)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
@@ -245,10 +274,7 @@ class ShopListView(APIView):
     def post(self, request, id=None, *args, **kwargs):
         user = request.user
         if user.is_authenticated:
-            try:
-                shoplist = ShopList.objects.get(user=user)
-            except ShopList.DoesNotExist:
-                shoplist = ShopList.objects.create(user=user)
+            shoplist = ShopList.objects.get_or_create(user=user)[0]
             try:
                 recipe = Recipe.objects.get(id=id)
                 if recipe not in shoplist.recipes.all():
@@ -262,6 +288,23 @@ class ShopListView(APIView):
 
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 return Response({'detail': 'Рецепт уже есть в списке'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            except Recipe.DoesNotExist:
+                return Response({'detail': f'Рецепт не с id={id} не найден'},
+                                status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail: Вы не авторизованы'},
+                        status=status.HTTP_401_UNAUTHORIZED)
+
+    def delete(self, request, id=None, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated:
+            shoplist = ShopList.objects.get_or_create(user=user)[0]
+            try:
+                recipe = Recipe.objects.get(id=id)
+                if recipe in shoplist.recipes.all():
+                    shoplist.recipes.remove(recipe)
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+                return Response({'detail': 'Рецепта нет в списке'},
                                 status=status.HTTP_400_BAD_REQUEST)
             except Recipe.DoesNotExist:
                 return Response({'detail': f'Рецепт не с id={id} не найден'},
