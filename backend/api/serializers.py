@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField, CharField, Field, IntegerField
 from rest_framework.serializers import ModelSerializer, Serializer
 
-from foodgram.models import Subscription, Ingredient, Recipe, RecipeIngredient, Favorite
+from foodgram.models import Subscription, Ingredient, Recipe, RecipeIngredient, Favorite, ShopList
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -149,8 +149,11 @@ class RecipeSerializer(ModelSerializer):
                                          False)
         exclude_text = kwargs.pop('exclude_text', False)
         exclude_serializer_method = kwargs.pop('exclude_serializer_method', False)
+        for_download = kwargs.pop('for_download', False)
 
         super().__init__(*args, **kwargs)
+
+
 
         if exclude_author:
             self.fields.pop('author')
@@ -233,3 +236,18 @@ class SubscriptionSerializer(Serializer):
 
     def get_id(self, obj, request):
         return -1
+
+
+class ShopListSerializer(ModelSerializer):
+    recipes = SerializerMethodField()
+    class Meta:
+        model = ShopList
+        fields = ('recipes',)
+
+    def get_recipes(self, obj):
+        recipes = RecipeSerializer(obj.recipes.all(), many=True).data
+        result = {
+
+        }
+
+

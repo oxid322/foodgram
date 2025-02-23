@@ -1,7 +1,10 @@
 from django.contrib import admin
 from foodgram.models import (User,
                              Recipe,
-                             Ingredient, RecipeIngredient)
+                             Ingredient,
+                             RecipeIngredient,
+                             Favorite,
+                             ShopList, )
 
 
 @admin.register(User)
@@ -18,8 +21,6 @@ class RecipeIngredientInline(admin.TabularInline):
         return f'{obj.ingredient} + {obj.ingredient.measurement_unit}'
 
 
-
-
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     inlines = [RecipeIngredientInline]
@@ -30,9 +31,20 @@ class RecipeAdmin(admin.ModelAdmin):
 
     get_ingredients.short_description = 'Ингредиенты'
 
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('name', 'measurement_unit')
 
 
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'recipe')
 
+
+@admin.register(ShopList)
+class ShopListAdmin(admin.ModelAdmin):
+    list_display = ('user', 'get_recipes')
+
+    def get_recipes(self, obj):
+        return ", ".join(recipe.name for recipe in obj.recipes.all())

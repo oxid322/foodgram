@@ -55,7 +55,7 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    """Модель рецепта"""
+    """Вспомогательная модель рецепта"""
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     amount = models.FloatField(verbose_name='Количество')
@@ -71,3 +71,16 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user.username} {self.recipe.name}"
+
+
+class ShopList(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    recipes = models.ManyToManyField(Recipe,
+                                     related_name='shop_lists',
+                                     blank=True)
+
+    def __str__(self):
+        return f"Shopping List for {self.user.username}"
+
+    class Meta:
+        unique_together = ('user',)

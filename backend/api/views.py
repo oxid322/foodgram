@@ -1,16 +1,28 @@
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.core.exceptions import ObjectDoesNotExist
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import (UpdateModelMixin,
                                    DestroyModelMixin,
                                    CreateModelMixin,
                                    ListModelMixin)
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (AllowAny,
+                                        IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import (ModelViewSet,
+                                     GenericViewSet,
+                                     ReadOnlyModelViewSet)
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 
-from foodgram.models import Subscription, Recipe, Ingredient, Favorite
+from foodgram.models import (Subscription,
+                             Recipe,
+                             Ingredient,
+                             Favorite,
+                             ShopList,
+                             RecipeIngredient)
 from .pagination import CustomPagination
 from .serializers import (CustomUserSerializer,
                           SubscriptionSerializer,
@@ -119,8 +131,6 @@ class ListSubViewSet(ListModelMixin, GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
 class AvatarViewSet(UpdateModelMixin,
                     DestroyModelMixin,
                     GenericViewSet):
@@ -203,3 +213,58 @@ class FavoriteViewSet(DestroyModelMixin,
                 return Response({'detail': 'Рецепта нет в избранном'})
         except ObjectDoesNotExist:
             return Response({'detail': 'Рецепт не существует'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class DownloadShoppingList(APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        shop_list = ShopList.objects.get_or_create(user=user)[0]
+        recipes = shop_list.recipes.all()
+        ingredients_res = {}
+        for recipe in recipes:
+            ingredients = RecipeIngredient.objects.filter(recipe=recipe)
+            for ingredient in ingredients:
+                name = ingredient.ingredient.name
+                unit = ingredient.ingredient.measurement_unit
+                amount = ingredient.amount
+                name_mes = f'{name} {unit}'
+                if name_mes in ingredients_res:
+                    ingredients_res[name_mes] += amount
+                else:
+                    ingredients_res[name_mes] = amount
+
+        # Создаем текстовый файл
+        file_content = "\n".join(f'{key}: {value}' for key, value in ingredients_res.items())
+        response = HttpResponse(file_content, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+
+        return response
+
+
+class ShopListView(APIView):
+    def post(self, request, id=None, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated:
+            try:
+                shoplist = ShopList.objects.get(user=user)
+            except ShopList.DoesNotExist:
+                shoplist = ShopList.objects.create(user=user)
+            try:
+                recipe = Recipe.objects.get(id=id)
+                if recipe not in shoplist.recipes.all():
+                    shoplist.recipes.add(recipe)
+                    shoplist.save()
+                    serializer = RecipeSerializer(recipe,
+                                                  exclude_serializer_method=True,
+                                                  exclude_text=True,
+                                                  exclude_ingredients=True,
+                                                  exclude_author=True)
+
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response({'detail': 'Рецепт уже есть в списке'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            except Recipe.DoesNotExist:
+                return Response({'detail': f'Рецепт не с id={id} не найден'},
+                                status=status.HTTP_404_NOT_FOUND)
+        return Response({'detail: Вы не авторизованы'},
+                        status=status.HTTP_401_UNAUTHORIZED)
