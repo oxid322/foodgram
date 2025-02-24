@@ -58,7 +58,10 @@ class RecipeIngredient(models.Model):
     """Вспомогательная модель рецепта"""
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    amount = models.FloatField(verbose_name='Количество')
+    amount = models.IntegerField(verbose_name='Количество',
+                                 null=False,
+                                 blank=False,
+                                 default=0)
 
     def __str__(self):
         return f"{self.amount} {self.ingredient.measurement_unit} {self.ingredient.name} для {self.recipe.name}"
