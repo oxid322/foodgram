@@ -19,11 +19,12 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 
+from api.views import GetRecipeByShortLink
+
 urlpatterns = [
+    path('s/<str:hashid>', GetRecipeByShortLink.as_view(), name='get_recipe_by_shortlink'),
     path('api/auth/', include('djoser.urls.authtoken')),
     path('api/', include('api.urls', namespace='foodgram_api')),
-
-    # path('api/', include('djoser.urls')),
     path('admin/', admin.site.urls),
 ]
 if settings.DEBUG:

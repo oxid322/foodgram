@@ -1,6 +1,9 @@
+from hashids import Hashids
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+hashids = Hashids(salt='pivo', min_length=3)
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -53,6 +56,10 @@ class Recipe(models.Model):
     def __str__(self):
         return self.name
 
+    def get_short_link(self):
+        hashid = hashids.encode(self.id)
+        return ShortLink.objects.get_or_create(recipe=self, hashid=hashid)[0]
+
 
 class RecipeIngredient(models.Model):
     """Вспомогательная модель рецепта"""
@@ -87,3 +94,11 @@ class ShopList(models.Model):
 
     class Meta:
         unique_together = ('user',)
+
+
+class ShortLink(models.Model):
+    recipe = models.OneToOneField(Recipe, on_delete=models.CASCADE)
+    hashid = models.CharField(max_length=32, unique=True)
+
+    def __str__(self):
+        return f'Short Link for {self.recipe.name}'

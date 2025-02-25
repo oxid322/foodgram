@@ -4,8 +4,7 @@ from foodgram.models import (User,
                              Ingredient,
                              RecipeIngredient,
                              Favorite,
-                             ShopList, )
-
+                             ShopList, ShortLink, )
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -48,3 +47,8 @@ class ShopListAdmin(admin.ModelAdmin):
 
     def get_recipes(self, obj):
         return ", ".join(recipe.name for recipe in obj.recipes.all())
+
+
+@admin.register(ShortLink)
+class ShortLinkAdmin(admin.ModelAdmin):
+    list_display = ('recipe', 'hashid')

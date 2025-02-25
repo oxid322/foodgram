@@ -1,16 +1,13 @@
-import base64
 import logging
-import os
-import uuid
 
-import django.conf
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, PasswordSerializer
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework.exceptions import ValidationError
-from rest_framework.fields import SerializerMethodField, CharField, ListField, DictField
-from rest_framework.serializers import ModelSerializer, Serializer, PrimaryKeyRelatedField, IntegerField
+from rest_framework.fields import SerializerMethodField, CharField
+from rest_framework.serializers import (ModelSerializer,
+                                        Serializer,
+                                        IntegerField,
+                                        ValidationError)
 
 from foodgram.models import Subscription, Ingredient, Recipe, RecipeIngredient, Favorite, ShopList
 
@@ -25,14 +22,12 @@ class CustomUserSerializer(UserCreateSerializer):
 
     class Meta:
         model = User
-        fields = (
-                     tuple(User.REQUIRED_FIELDS)) + (
-                     'email',
-                     'id',
+        fields = (('email', 'id') +
+                  tuple(User.REQUIRED_FIELDS)) + (
                      'is_subscribed',
                      'avatar',
                  )
-        read_only_fields = ['is_subscribed', 'id', 'email']
+        read_only_fields = ['is_subscribed', 'id']
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -50,8 +45,14 @@ class CustomUserSerializer(UserCreateSerializer):
         # незачем отправлять запрос в БД
         if request.path == '/api/users/me/' or not request.user.is_authenticated:
             representation['is_subscribed'] = False
+
         elif request.path == '/api/users/me/avatar/':
             representation = {'avatar': representation['avatar']}
+
+        if request.path == '/api/users/' and request.method == "POST":
+            representation.pop('is_subscribed', None)
+            representation.pop('avatar', None)
+
         return representation
 
 
@@ -121,7 +122,6 @@ class IngredientSerializer(ModelSerializer):
         fields = ('id',
                   'name',
                   'measurement_unit')
-
 
 
 class RecipeSerializer(ModelSerializer):
@@ -266,14 +266,13 @@ class _IngredientSerializer(ModelSerializer):
     def validate_amount(self, value):
         if value >= 1:
             return value
-        return ValidationError("Убедитесь, что это значение больше либо равно 1.")
+        raise ValidationError("Убедитесь, что это значение больше либо равно 1.")
 
 
 class PostRecipeSerializer(RecipeSerializer):
     ingredients = _IngredientSerializer(many=True,
                                         source='recipeingredient_set',
-                                        required=True,
-                                        )
+                                        required=True)
 
     class Meta:
         model = Recipe
@@ -291,31 +290,53 @@ class PostRecipeSerializer(RecipeSerializer):
                   )
         read_only_fields = ['author']
 
-    def create(self, validated_data):
-        ingredients = validated_data.pop('recipeingredient_set')
-        user = self.context.get('request').user
-        recipe = Recipe.objects.create(**validated_data, author=user)
+    def create_ingredients_connections(self, recipe, ingredients):
+        print(ingredients)
         for ingredient in ingredients:
-
             ing_id = ingredient.get('id')
+            print(ing_id)
             ingredient_inst = Ingredient.objects.get(id=ing_id)
             ri = RecipeIngredient.objects.create(recipe=recipe,
                                                  ingredient=ingredient_inst,
                                                  amount=ingredient.get('amount'))
+
+    def create(self, validated_data):
+        ingredients = validated_data.pop('recipeingredient_set')
+        user = self.context.get('request').user
+        recipe = Recipe.objects.create(**validated_data, author=user)
+        self.create_ingredients_connections(recipe, ingredients)
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop('recipeingredient_set')
-        RecipeIngredient.objects.get(recipe=instance)
+        if validated_data.get('recipeingredient_set', None) is not None:
+            ingredients = validated_data.pop('recipeingredient_set')
+            instance.ingredients.clear()
+            self.create_ingredients_connections(instance, ingredients)
+            return super().update(instance, validated_data)
+        raise ValidationError({'ingredients': 'Это поле обязательно.'})
 
     def to_representation(self, instance):
         i = 0
         representation = super().to_representation(instance)
-        representation['ingredients'] = _IngredientSerializer(instance.recipeingredient_set.all(), many=True).data
+        representation['ingredients'] = _IngredientSerializer(instance.recipeingredient_set.all(),
+                                                              many=True).data
         for ingredient in representation['ingredients']:
             ingredient['id'] = i
             i += 1
         return representation
+
+    def validate_ingredients(self, value):
+        if value:
+            ingredient_ids = [item['id'] for item in value]
+            if len(ingredient_ids) != len(set(ingredient_ids)):
+                raise ValidationError('Ингредиенты не должны повторяться')
+            return value
+        raise ValidationError('Это поле обязательно для заполнения.')
+
+    def validate_image(self, image):
+        if image:
+            return image
+        raise ValidationError('Это поле обязательно для заполнения.')
 
 
 class SubscriptionSerializer(Serializer):
