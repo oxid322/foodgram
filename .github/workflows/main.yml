@@ -3,7 +3,7 @@ name: Main Taski workflow
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
   tests:
