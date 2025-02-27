@@ -163,25 +163,29 @@ class RecipeViewSet(ModelViewSet):
     filter_backends = [DjangoFilterBackend, ]
 
     def list(self, request, *args, **kwargs):
+        is_favorited: str = None
+        is_in_shopping_cart: str = None
         user = request.user
         queryset: QuerySet[Recipe] = Recipe.objects.all()
+        query_params = self.request.query_params
+        author: str = query_params.get('author', None)
         if user.is_authenticated:
-            query_params = self.request.query_params
-            author: str = query_params.get('author', None)
-            is_favorited: str = query_params.get('is_favorited', None)
-            is_in_shopping_cart: str = query_params.get('is_in_shopping_cart', None)
-            if is_favorited:
-                if is_favorited.isdigit():
-                    recipes = Favorite.objects.filter(user=user)
-                    queryset = queryset.filter(favorite__in=recipes)
-            if is_in_shopping_cart:
-                if is_in_shopping_cart.isdigit():
-                    shop_list = ShopList.objects.get_or_create(user=user)[0]
-                    logger.debug(shop_list.recipes.all())
-                    queryset = queryset.filter(shop_lists=shop_list)
-            if author:
-                if author.isdigit():
-                    queryset = queryset.filter(author=author)
+            is_favorited = query_params.get('is_favorited', None)
+            is_in_shopping_cart = query_params.get('is_in_shopping_cart', None)
+
+        if author:
+            if author.isdigit():
+                author_id = int(author)
+                queryset = queryset.filter(author__id=author_id)
+        if is_favorited:
+            if is_favorited.isdigit():
+                recipes = Favorite.objects.filter(user=user)
+                queryset = queryset.filter(favorite__in=recipes)
+        if is_in_shopping_cart:
+            if is_in_shopping_cart.isdigit():
+                shop_list = ShopList.objects.get_or_create(user=user)[0]
+                logger.debug(shop_list.recipes.all())
+                queryset = queryset.filter(shop_lists=shop_list)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
