@@ -19,7 +19,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'avatar', 'is_staff')
-    search_fields = ('username', 'email')
+    search_fields = ('username', 'email', 'first_name')
 
 
 class RecipeIngredientInline(admin.TabularInline):
@@ -34,7 +34,7 @@ class RecipeIngredientInline(admin.TabularInline):
 class RecipeAdmin(admin.ModelAdmin):
     inlines = [RecipeIngredientInline]
     list_display = ('name', 'get_author_name', 'favorite_count')
-    search_fields = ('author__firstname', 'name',)
+    search_fields = ('author__first_name', 'name',)
     readonly_fields = ('favorite_count',)
 
     def get_author_name(self, obj):
