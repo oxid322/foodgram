@@ -24,5 +24,8 @@ jobs:
         python -m pip install --upgrade pip 
         pip install ruff==0.8.0
 
-    - name: Lint with ruff
-      run: python -m ruff check backend/
+    - name: Lint with ruff and tests
+      run: |
+        python -m ruff check backend/
+        cd backend/
+        python manage.py test
