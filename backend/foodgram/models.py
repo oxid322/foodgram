@@ -1,3 +1,4 @@
+from django.utils import timezone
 from hashids import Hashids
 
 from django.db import models
@@ -65,10 +66,14 @@ class Recipe(models.Model):
                                          through='RecipeIngredient',
                                          verbose_name='Ингридиенты')
     cooking_time = models.PositiveIntegerField('Время приготовления')
+    created_at = models.DateTimeField('Дата время создания',
+                                      auto_now_add=True)
+
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.name
