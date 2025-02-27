@@ -1,0 +1,5 @@
+db.sqlite3.bak
+media
+logs.log
+.env
+Dockerfile

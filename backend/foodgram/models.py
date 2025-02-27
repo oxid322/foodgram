@@ -5,13 +5,14 @@ from django.contrib.auth.models import AbstractUser
 
 hashids = Hashids(salt='pivo', min_length=3)
 
+
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    first_name = models.CharField('Имя',
+    first_name = models.CharField(verbose_name='Имя',
                                   max_length=150,
                                   blank=False,
                                   null=False)
-    last_name = models.CharField('Фамилия',
+    last_name = models.CharField(verbose_name='Фамилия',
                                  max_length=150,
                                  blank=False,
                                  null=False)
@@ -26,10 +27,18 @@ class User(AbstractUser):
 class Subscription(models.Model):
     user = models.ForeignKey(User,
                              on_delete=models.CASCADE,
-                             related_name='subcriptions')
+                             related_name='subcriptions',
+                             verbose_name='Пользователь',
+                             help_text='Подписчик')
     subscribed_to = models.ForeignKey(User,
                                       related_name='subscribers',
-                                      on_delete=models.CASCADE)
+                                      on_delete=models.CASCADE,
+                                      verbose_name='Пользователь',
+                                      help_text='Цель подписки')
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
 
 
 class Ingredient(models.Model):
@@ -39,6 +48,10 @@ class Ingredient(models.Model):
     def __str__(self):
         return self.name + ', ' + self.measurement_unit
 
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+
 
 class Recipe(models.Model):
     author = models.ForeignKey(User,
@@ -46,12 +59,16 @@ class Recipe(models.Model):
                                on_delete=models.CASCADE,
                                verbose_name='Автор')
     name = models.CharField("Название", max_length=256)
-    image = models.ImageField(upload_to='recipes/')
+    image = models.ImageField(upload_to='recipes/', verbose_name='Картинка')
     text = models.TextField('Описание')
     ingredients = models.ManyToManyField(Ingredient,
                                          through='RecipeIngredient',
                                          verbose_name='Ингридиенты')
     cooking_time = models.PositiveIntegerField('Время приготовления')
+
+    class Meta:
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
 
     def __str__(self):
         return self.name
@@ -73,32 +90,58 @@ class RecipeIngredient(models.Model):
     def __str__(self):
         return f"{self.amount} {self.ingredient.measurement_unit} {self.ingredient.name} для {self.recipe.name}"
 
+    class Meta:
+        verbose_name = 'Рецепт ингредиент'
+        verbose_name_plural = 'Рецепт ингредиенты'
+
 
 class Favorite(models.Model):
     """Модель избранного"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorite')
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             related_name='favorites',
+                             verbose_name='Пользователь')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE,
+                               related_name='favorite',
+                               verbose_name='Рецепт')
 
     def __str__(self):
         return f"{self.user.username} {self.recipe.name}"
 
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+
 
 class ShopList(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User,
+                                on_delete=models.CASCADE,
+                                verbose_name='Пользователь')
     recipes = models.ManyToManyField(Recipe,
                                      related_name='shop_lists',
-                                     blank=True)
+                                     blank=True,
+                                     verbose_name='Рецепт')
 
     def __str__(self):
         return f"Shopping List for {self.user.username}"
 
     class Meta:
         unique_together = ('user',)
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
 
 
 class ShortLink(models.Model):
-    recipe = models.OneToOneField(Recipe, on_delete=models.CASCADE)
-    hashid = models.CharField(max_length=32, unique=True)
+    recipe = models.OneToOneField(Recipe,
+                                  on_delete=models.CASCADE,
+                                  verbose_name='Рецепт')
+    hashid = models.CharField(verbose_name='Хэш-идентификатор',
+                              max_length=32,
+                              unique=True)
 
     def __str__(self):
         return f'Short Link for {self.recipe.name}'
+
+    class Meta:
+        verbose_name = 'Короткая ссылка'
+        verbose_name_plural = 'Короткие ссылки'

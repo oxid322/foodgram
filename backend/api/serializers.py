@@ -320,9 +320,9 @@ class PostRecipeSerializer(RecipeSerializer):
         representation = super().to_representation(instance)
         representation['ingredients'] = _IngredientSerializer(instance.recipeingredient_set.all(),
                                                               many=True).data
-        for ingredient in representation['ingredients']:
-            ingredient['id'] = i
-            i += 1
+        # for ingredient in representation['ingredients']:
+        #     ingredient['id'] = i
+        #     i += 1
         return representation
 
     def validate_ingredients(self, value):
