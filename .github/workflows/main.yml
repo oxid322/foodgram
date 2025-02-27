@@ -39,6 +39,7 @@ jobs:
         POSTGRES_DB: django_db
         DB_HOST: 127.0.0.1
         DB_PORT: 5432
+        SECRET_KEY: 'pivo'
       run: |
         python -m ruff check backend/
         cd backend/
