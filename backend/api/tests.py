@@ -20,8 +20,8 @@ class UserCreationTests(APITestCase):
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.count(), 1)
-        self.assertEqual(User.objects.get().username, 'oxid322')
+        self.assertEqual(User.objects.count(), 8)
+        self.assertEqual(User.objects.get(email='test@r.ru').username, 'oxid322')
 
     def test_create_user_no_username(self):
         """Тест на создание пользователя без логина"""
@@ -35,7 +35,7 @@ class UserCreationTests(APITestCase):
         url = reverse('foodgram_api:user-list')
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(User.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 7)
 
 
 class UserAvatarTests(APITestCase):
