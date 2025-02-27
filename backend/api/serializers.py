@@ -154,7 +154,6 @@ class RecipeSerializer(ModelSerializer):
                                          False)
         exclude_text = kwargs.pop('exclude_text', False)
         exclude_serializer_method = kwargs.pop('exclude_serializer_method', False)
-        for_download = kwargs.pop('for_download', False)
 
         super().__init__(*args, **kwargs)
         if exclude_author:
@@ -223,13 +222,6 @@ class RecipeUserSerializer(CustomUserSerializer):
                             'recipes',
                             'recipes_count']
 
-    def __init__(self, *args, **kwargs):
-        limit_recipes = kwargs.pop('limit_recipes', None)
-        super().__init__(*args, **kwargs)
-
-        if limit_recipes:
-            limit_recipes = self.context.get('limit_recipes', None)
-
     def get_recipes(self, obj):
         limit = self.context.get('request').query_params.get('recipes_limit', obj.recipes.count())
         recipes = obj.recipes.all()[:int(limit)]
@@ -296,9 +288,9 @@ class PostRecipeSerializer(RecipeSerializer):
             ing_id = ingredient.get('id')
             print(ing_id)
             ingredient_inst = Ingredient.objects.get(id=ing_id)
-            ri = RecipeIngredient.objects.create(recipe=recipe,
-                                                 ingredient=ingredient_inst,
-                                                 amount=ingredient.get('amount'))
+            RecipeIngredient.objects.create(recipe=recipe,
+                                            ingredient=ingredient_inst,
+                                            amount=ingredient.get('amount'))
 
     def create(self, validated_data):
         ingredients = validated_data.pop('recipeingredient_set')
@@ -316,13 +308,9 @@ class PostRecipeSerializer(RecipeSerializer):
         raise ValidationError({'ingredients': 'Это поле обязательно.'})
 
     def to_representation(self, instance):
-        i = 0
         representation = super().to_representation(instance)
         representation['ingredients'] = _IngredientSerializer(instance.recipeingredient_set.all(),
                                                               many=True).data
-        # for ingredient in representation['ingredients']:
-        #     ingredient['id'] = i
-        #     i += 1
         return representation
 
     def validate_ingredients(self, value):
@@ -356,8 +344,4 @@ class ShopListSerializer(ModelSerializer):
         model = ShopList
         fields = ('recipes',)
 
-    def get_recipes(self, obj):
-        recipes = RecipeSerializer(obj.recipes.all(), many=True).data
-        result = {
 
-        }
