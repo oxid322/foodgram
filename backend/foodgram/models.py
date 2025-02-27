@@ -1,8 +1,6 @@
-from django.utils import timezone
-from hashids import Hashids
-
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
+from hashids import Hashids
 
 hashids = Hashids(salt='pivo', min_length=3)
 
