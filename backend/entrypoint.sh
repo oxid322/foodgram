@@ -1,6 +1,6 @@
 #!/bin/sh
 
-sleep 5
+sleep 2
 
 # Применение миграций
 python3 manage.py migrate --noinput

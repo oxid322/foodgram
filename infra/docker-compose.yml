@@ -11,9 +11,9 @@ services:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U django_user -d django" ]
-      interval: 5s
+      interval: 2s
       timeout: 5s
-      retries: 5
+      retries: 3
   backend:
     container_name: foodgram-back
     build: ../backend
@@ -42,5 +42,5 @@ services:
       - ../backend/media/:/usr/share/nginx/html/media
       - static:/staticfiles
     depends_on:
-      backend:
+      db:
         condition: service_started
