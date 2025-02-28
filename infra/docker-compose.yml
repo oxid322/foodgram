@@ -9,15 +9,22 @@ services:
     env_file: ../.env
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U django_user -d django" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   backend:
     container_name: foodgram-back
     build: ../backend
     env_file: ../.env
+    entrypoint: /app/entrypoint.sh
     volumes:
       - ../backend/media:/app/media
       - static:/backend_static
     depends_on:
-      - db
+      db:
+        condition: service_healthy
   frontend:
     container_name: foodgram-front
     build: ../frontend
@@ -34,3 +41,6 @@ services:
       - ../docs/:/usr/share/nginx/html/api/docs/
       - ../backend/media/:/usr/share/nginx/html/media
       - static:/staticfiles
+    depends_on:
+      backend:
+        condition: service_started

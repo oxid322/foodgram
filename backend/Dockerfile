@@ -8,9 +8,5 @@ RUN pip install -r requirements.txt --no-cache-dir
 
 COPY . .
 
-RUN chmod +x /app/entrypoint.sh
-
-EXPOSE 80
-
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoin.sh"]
 
