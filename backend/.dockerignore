@@ -1,5 +1,4 @@
 db.sqlite3.bak
 logs.log
 .env
-Dockerfile
 static
